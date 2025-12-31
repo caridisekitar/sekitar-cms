@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('contact_us', function (Blueprint $table) {
@@ -22,19 +19,26 @@ return new class extends Migration {
 
             // Company information
             $table->string('company', 150)->nullable();
-            $table->enum('employees', ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'])->nullable();
+            $table->enum('employees', [
+                '1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'
+            ])->nullable();
             $table->string('title', 150)->nullable();
 
             // Request details
             $table->string('subject', 255);
             $table->text('message');
-            $table->enum('status', ['new', 'read', 'pending', 'responded', 'closed'])->default('new')->index();
+            $table->enum('status', [
+                'new', 'read', 'pending', 'responded', 'closed'
+            ])->default('new')->index();
 
             // Reply information
             $table->string('reply_subject')->nullable();
             $table->text('reply_message')->nullable();
             $table->timestamp('replied_at')->nullable();
-            $table->foreignUuid('replied_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('replied_by_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
 
             // Metadata
             $table->timestamps();
@@ -44,15 +48,55 @@ return new class extends Migration {
             $table->json('metadata')->nullable();
         });
 
-        // Add fulltext search for better query performance on message content
-        DB::statement('ALTER TABLE contact_us ADD FULLTEXT search(firstname, lastname, email, subject, message)');
+        /**
+         * FULLTEXT replacement
+         */
+        if (DB::getDriverName() === 'pgsql') {
+
+            // 1. Add tsvector column
+            DB::statement("
+                ALTER TABLE contact_us
+                ADD COLUMN search tsvector
+            ");
+
+            // 2. Populate search column
+            DB::statement("
+                UPDATE contact_us SET search =
+                to_tsvector(
+                    'simple',
+                    coalesce(firstname,'') || ' ' ||
+                    coalesce(lastname,'') || ' ' ||
+                    coalesce(email,'') || ' ' ||
+                    coalesce(subject,'') || ' ' ||
+                    coalesce(message,'')
+                )
+            ");
+
+            // 3. Create GIN index
+            DB::statement("
+                CREATE INDEX contact_us_search_idx
+                ON contact_us
+                USING GIN (search)
+            ");
+        }
+
+        /**
+         * Optional: MySQL support
+         */
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("
+                ALTER TABLE contact_us
+                ADD FULLTEXT search (firstname, lastname, email, subject, message)
+            ");
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('DROP INDEX IF EXISTS contact_us_search_idx');
+        }
+
         Schema::dropIfExists('contact_us');
     }
 };
