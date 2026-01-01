@@ -21,9 +21,6 @@ Route::get('/', function () {
     return redirect('admin');
 })->name('home');
 
-Route::post('/admin/login', [App\Http\Controllers\Admin\AuthController::class, 'login'])
-    ->name('admin.login');
-
 Route::get('/about-us', function () {
     return view('components.superduper.pages.about');
 })->name('about-us');
