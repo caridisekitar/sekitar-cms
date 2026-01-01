@@ -18,7 +18,7 @@ use Lab404\Impersonate\Services\ImpersonateManager;
 */
 
 Route::get('/', function () {
-    return view('components.superduper.pages.home');
+    return redirect('admin/login');
 })->name('home');
 
 Route::get('/about-us', function () {
