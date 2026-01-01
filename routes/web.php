@@ -63,3 +63,5 @@ Route::get('impersonate/leave', function() {
 Route::get('/sitemap.xml', [App\Http\Controllers\SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [App\Http\Controllers\SitemapController::class, 'robots'])->name('robots');
 
+
+Route::get('/health', fn () => response('OK', 200));
