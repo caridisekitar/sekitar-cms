@@ -18,7 +18,7 @@ use Lab404\Impersonate\Services\ImpersonateManager;
 */
 
 Route::get('/', function () {
-    return redirect('admin/login');
+    return redirect('admin');
 })->name('home');
 
 Route::get('/about-us', function () {
